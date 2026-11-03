@@ -1,5 +1,5 @@
 /* Service worker: l'app funziona offline e prende la versione nuova appena c'è rete. */
-const CACHE = "sgl21k-v1";
+const CACHE = "sgl21k-v3";
 const CORE = ["./", "./index.html", "./plan.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

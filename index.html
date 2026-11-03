@@ -18,7 +18,7 @@
   --lemon:#F2D24B; --ink:#14130A; --paper:#F3F4EE;
   --easy:#4FC3A1; --quality:#F0A93B; --long:#9B8CFF; --strides:#7FE0C2; --race:#F2D24B;
   --strength:#5AA9FF; --functional:#5AA9FF; --hyrox:#FF6F6F; --home:#7DB8FF; --core:#7DB8FF;
-  --swim:#36C9E0; --recovery:#9DB4C2; --rest:#3B5566;
+  --swim:#36C9E0; --recovery:#9DB4C2; --rest:#3B5566; --padel:#C792EA; --bike:#9B8CFF;
   --ok:#4FC3A1; --warn:#F0A93B; --bad:#FF6F6F;
   --cond:"Barlow Condensed",system-ui,sans-serif;
 }
@@ -125,7 +125,20 @@ main{max-width:680px;margin:0 auto;padding:14px 16px 24px}
 .fb{display:flex;gap:8px;margin-top:6px;font-size:.86rem;line-height:1.4}
 .fb::before{content:"";flex:0 0 8px;height:8px;border-radius:50%;margin-top:6px;background:var(--fbc)}
 .fb.ok{--fbc:var(--ok)}.fb.warn{--fbc:var(--warn)}.fb.bad{--fbc:var(--bad)}
-.compact .targets,.compact .steps,.compact .fuel,.compact .snote{display:none}
+.compact .targets,.compact .steps,.compact .fuel,.compact .snote,.compact .diet{display:none}
+.shoe{font-size:.85rem;margin-top:6px;color:#C7D5DD}.shoe b{color:var(--mu);font-weight:600}
+.opt{font-size:.72rem;border:1px solid var(--dim);border-radius:6px;padding:0 6px;margin-left:6px;color:var(--mu)}
+.diet{background:var(--s1);border-radius:12px;padding:10px 14px;margin:0 0 10px;border-left:4px solid var(--lemon)}
+.diet summary{cursor:pointer;font-size:.9rem;list-style:none}.diet summary::-webkit-details-marker{display:none}
+.diet summary b{font-family:var(--cond);font-size:1.05rem;color:var(--lemon);font-weight:700;margin-right:6px}
+.diet .mac{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 8px;text-align:center}
+.diet .mac div{background:var(--s2);border-radius:8px;padding:6px 2px}.diet .mac b{display:block;font-size:1rem}.diet .mac span{font-size:.72rem;color:var(--mu)}
+.diet .meal{margin-top:8px}.diet h5{font-size:.8rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.diet ul{list-style:none;margin:2px 0 0;font-size:.88rem}.diet ul li{padding:2px 0;border-bottom:1px solid var(--line)}
+.diet ul.shop{columns:1}
+.diet ul li b{font-weight:600}
+.diet p{font-size:.84rem;line-height:1.4;margin-top:6px;color:#C7D5DD}
+
 
 /* activities */
 .drop{display:block;width:100%;text-align:center;border:1.5px dashed var(--dim);border-radius:14px;padding:22px 16px;background:var(--s1)}
@@ -234,7 +247,7 @@ details.tool[open]>summary::after{content:"–"}
 <script src="plan.js"></script>
 <script>
 "use strict";
-const APP_V = "1.0.0";
+const APP_V = "1.2.0";
 const KEY = "sgl21k.v1";
 
 /* ---------- utilità ---------- */
@@ -259,19 +272,20 @@ const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
 const weekOf = iso => Math.floor(daysBetween(PLAN_INFO.start, iso) / 7) + 1;
 const NW = 11;
 const RPE_L = ["", "1 Molto leggero", "2 Leggero", "3 Facile", "4 Facile-moderato", "5 Moderato", "6 Impegnativo", "7 Duro", "8 Molto duro", "9 Quasi massimo", "10 Massimo"];
-const GOAL_L = { easy: "Corsa facile", long: "Lungo", strides: "Allunghi", quality: "Qualità", race: "Gara", strength: "Forza", functional: "Functional", hyrox: "Hyrox", home: "Forza a casa", core: "Core a casa", swim: "Nuoto", recovery: "Mobilità", rest: "Riposo", bike: "Bici" };
+const GOAL_L = { easy: "Corsa facile", long: "Lungo", strides: "Allunghi", quality: "Qualità", race: "Gara", strength: "Forza", functional: "Functional", hyrox: "Hyrox", home: "Forza a casa", core: "Core a casa", swim: "Nuoto", recovery: "Mobilità", rest: "Riposo", bike: "Cyclette", padel: "Padel" };
 const SPORT_L = { run: "Corsa", swim: "Nuoto", strength: "Palestra / forza", bike: "Bici / cyclette", walk: "Camminata", other: "Altro" };
 const SPORT_C = { run: "var(--easy)", swim: "var(--swim)", strength: "var(--strength)", bike: "var(--long)", walk: "var(--recovery)", other: "var(--rest)" };
 const RUN_KINDS = ["run", "race"];
-const MATCH = { run: ["run", "race"], swim: ["swim"], strength: ["gym", "home"], bike: ["bike"], walk: [], other: [] };
+const MATCH = { run: ["run", "race"], swim: ["swim"], strength: ["gym", "home"], bike: ["bike"], walk: [], other: ["padel"] };
 const isRun = s => RUN_KINDS.includes(s.kind);
 
 /* ---------- stato ---------- */
-let state = { logs: {}, acts: [], overrides: {}, swaps: {}, reviewed: {}, ui: { compact: false, week: null }, meta: { created: new Date().toISOString() } };
+let state = { logs: {}, acts: [], overrides: {}, swaps: {}, padel: {}, reviewed: {}, ui: { compact: false, week: null }, meta: { created: new Date().toISOString() } };
 function load() {
   try { const raw = localStorage.getItem(KEY); if (raw) state = Object.assign(state, JSON.parse(raw)); }
   catch (e) { console.warn(e); }
   state.ui = Object.assign({ compact: false, week: null }, state.ui || {});
+  state.padel = state.padel || {};
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
@@ -283,10 +297,19 @@ function buildPlan() {
     const o = state.overrides[b.date];
     return { date: b.date, w: weekOf(b.date), note: (o && o.note != null) ? o.note : (b.note || ""), sessions: JSON.parse(JSON.stringify(o ? o.sessions : b.sessions)), adapted: o ? { src: o.src, at: o.at, why: o.why } : null };
   });
-  for (const w of Object.keys(state.swaps)) {
-    if (!state.swaps[w]) continue;
-    const sat = days.find(d => d.w == w && D(d.date).getDay() === 6), sun = days.find(d => d.w == w && D(d.date).getDay() === 0);
-    if (sat && sun) { const t = sat.sessions; sat.sessions = sun.sessions; sun.sessions = t; sat.swapped = sun.swapped = true; }
+  for (let w = 1; w <= NW; w++) {
+    const wd = days.filter(d => d.w === w);
+    const thu = wd.find(d => D(d.date).getDay() === 4), sat = wd.find(d => D(d.date).getDay() === 6), sun = wd.find(d => D(d.date).getDay() === 0);
+    const padelSun = state.padel[w] === "dom" && thu && thu.sessions.some(s => s.kind === "padel");
+    if ((state.swaps[w] || padelSun) && sat && sun) { const t = sat.sessions; sat.sessions = sun.sessions; sun.sessions = t; sat.swapped = sun.swapped = true; }
+    if (padelSun && sun) {
+      const ps = thu.sessions.filter(s => s.kind === "padel");
+      thu.sessions = thu.sessions.filter(s => s.kind !== "padel");
+      ps.forEach(s => { s.slot = "Domenica mattina"; s.note = "Spostato da giovedì: il lungo è passato a sabato."; });
+      sun.sessions = sun.sessions.filter(s => s.kind !== "rest").concat(ps);
+      sat.padelSun = sun.padelSun = thu.padelSun = true;
+    }
+    wd.forEach(d => { d.hasPadel = padelSun || (thu && thu.sessions.some(s => s.kind === "padel")); });
   }
   days.forEach(d => d.sessions.forEach((s, i) => { s.id = `${d.date}-${i}`; s.date = d.date; s.w = d.w; }));
   PLAN = days;
@@ -307,7 +330,7 @@ function weekStats(w) {
   let plannedKm = 0, doneKm = 0, total = 0, done = 0;
   days.forEach(d => d.sessions.forEach(s => {
     if (isRun(s)) { plannedKm += +s.km || 0; doneKm += sessDoneKm(s); }
-    if (s.kind !== "rest") { total++; if (state.logs[s.id] && state.logs[s.id].done) done++; }
+    if (s.kind !== "rest") { const ok = state.logs[s.id] && state.logs[s.id].done; if (!s.optional || ok) total++; if (ok) done++; }
   }));
   const ids = new Set(days.flatMap(d => d.sessions.map(s => s.id)));
   state.acts.filter(a => a.sport === "run" && weekOf(a.date) === w && !(a.link && ids.has(a.link))).forEach(a => doneKm += a.distKm || 0);
@@ -634,6 +657,7 @@ async function importBackup(file) {
     Object.assign(state.logs, st.logs || {});
     Object.assign(state.overrides, st.overrides || {});
     Object.assign(state.swaps, st.swaps || {});
+    Object.assign(state.padel, st.padel || {});
     Object.assign(state.reviewed, st.reviewed || {});
     sortActs(); save(); buildPlan(); renderAll();
     toast(`Backup ripristinato: ${added} attività aggiunte, registrazioni e modifiche del piano unite.`, 4500);
@@ -712,11 +736,12 @@ function sessCard(s, opts = {}) {
     log = `<div class="logline"><b>Registrato:</b> ${esc(parts.join(", ") || "fatto")}${L.note ? `<br><span class="muted">${esc(L.note)}</span>` : ""}${feedback(s, L, acts).map(([k, m]) => `<div class="fb ${k}">${esc(m)}</div>`).join("")}</div>`;
   }
   return `<article class="sess${done ? " done" : ""}" style="--c:${c}" data-sid="${s.id}">
-    <div class="sess-top"><span class="sess-type">${esc(GOAL_L[s.goal] || s.goal)}</span><span>${esc(s.slot || "")}</span></div>
+    <div class="sess-top"><span class="sess-type">${esc(GOAL_L[s.goal] || s.goal)}${s.optional ? '<span class="opt">facoltativa</span>' : ""}</span><span>${esc(s.slot || "")}</span></div>
     <h4>${esc(s.title)}</h4>
     <div class="chips">${chips.map(x => `<span>${esc(x)}</span>`).join("")}</div>
     ${tg.length ? `<dl class="targets">${tg.map(([a, b]) => `<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>` : ""}
     ${stepsHTML(s.steps)}
+    ${s.shoe ? `<p class="shoe"><b>Scarpe:</b> ${esc(s.shoe)}</p>` : ""}
     ${s.fuel ? `<p class="fuel"><b>Bere e mangiare:</b> ${esc(s.fuel)}</p>` : ""}
     ${s.note ? `<p class="snote"><b>Nota:</b> ${esc(s.note)}</p>` : ""}
     ${s.adapt ? `<p class="adapt">${esc(s.adapt)}</p>` : ""}
@@ -726,12 +751,25 @@ function sessCard(s, opts = {}) {
 }
 function dayBlock(d) {
   const isToday = d.date === todayISO(), dow = D(d.date).getDay();
-  const swapBtn = dow === 6 && d.w < NW ? `<button class="btn sm ghost" data-act="swap" data-w="${d.w}">Scambia sabato e domenica</button>` : "";
+  const swapBtn = dow === 6 && d.w < NW && !d.padelSun ? `<button class="btn sm ghost" data-act="swap" data-w="${d.w}">Scambia sabato e domenica</button>` : "";
+  const padelBtn = dow === 4 && d.hasPadel ? `<button class="btn sm ghost" data-act="padel" data-w="${d.w}">${d.padelSun ? "Padel di giovedì" : "Padel di domenica"}</button>` : "";
   const swapNote = d.swapped && dow === 6 && d.sessions.some(s => s.goal === "long") ? `<p class="day-note">Il lungo è il giorno dopo l'Hyrox: tienilo tutto in Z2 e salta il finale a ritmo gara se le gambe sono pesanti.</p>` : "";
-  return `<div class="day" id="d-${d.date}"><div class="day-h"><h3>${fmtDayL(d.date)}${isToday ? '<span class="tag">Oggi</span>' : ""}</h3>${swapBtn}</div>
+  return `<div class="day" id="d-${d.date}"><div class="day-h"><h3>${fmtDayL(d.date)}${isToday ? '<span class="tag">Oggi</span>' : ""}</h3>${swapBtn}${padelBtn}</div>
     ${d.note ? `<p class="day-note">${esc(d.note)}</p>` : ""}${swapNote}
     ${d.adapted ? `<p class="day-note" style="color:var(--lemon)">Giornata modificata (${esc(d.adapted.src)}).</p>` : ""}
-    ${d.sessions.map(s => sessCard(s)).join("")}</div>`;
+    ${d.sessions.map(s => sessCard(s)).join("")}${dietHTML(d)}</div>`;
+}
+function dietHTML(d, open) {
+  const r = dietFor(d, PLAN[PLAN.indexOf(d) + 1]);
+  if (r.special) return `<details class="diet"${open ? " open" : ""}><summary><b>Alimentazione</b>${esc(r.name)}</summary><p>${esc(r.special)}</p></details>`;
+  return `<details class="diet"${open ? " open" : ""}><summary><b>Alimentazione</b>${esc(r.name)} · ≈${nf(r.tot.kcal, 0)} kcal${r.free ? " · pasto libero" : ""}</summary>
+    <div class="mac"><div><b>${r.tot.C} g</b><span>carboidrati</span></div><div><b>${r.tot.P} g</b><span>proteine</span></div><div><b>${r.tot.F} g</b><span>grassi</span></div><div><b>${nf(r.tot.kcal, 0)}</b><span>kcal</span></div></div>
+    ${r.meals.map(([name, list]) => `<div class="meal"><h5>${esc(name)}</h5><ul>${list.map(it => `<li>${it.qty ? `<b>${esc(it.qty)}</b> ` : ""}${esc(it.n)}</li>`).join("")}</ul></div>`).join("")}
+    <p class="small muted">Obiettivo del giorno: carboidrati ${r.target.C} g, proteine ${r.target.P} g, grassi ${r.target.F} g (${nf(r.target.kcal, 0)} kcal); le dosi sono arrotondate a porzioni e confezioni intere. Proteine: ${r.prot.alta} g da fonti complete, ${r.prot.legumi} g da legumi, ${r.prot.cereali} g da cereali. Cereali a crudo.</p></details>`;
+}
+function shopHTML(w) {
+  const L = shoppingFor(PLAN.filter(d => d.w === w));
+  return L.length ? `<details class="diet"><summary><b>Spesa</b>della settimana ${w}</summary><ul class="shop">${L.map(x => `<li>${esc(x)}</li>`).join("")}</ul><p class="small muted">Albume: apri il brick martedì e finiscilo giovedì. Uova: 2 martedì, 2 giovedì, 2 nel weekend. Il pasto libero del venerdì serve anche a finire quello che resta in frigo e in dispensa. Niente alcol il sabato sera prima del lungo.</p></details>` : "";
 }
 
 /* ---------- viste ---------- */
@@ -753,7 +791,7 @@ function renderOggi() {
   if (installEvt) html += `<div class="banner"><div><b>Installa l'app</b><br><span class="small muted">Icona sulla schermata Home e uso offline.</span></div><button class="btn pri sm" data-act="install">Installa</button></div>`;
   html += `<div class="progress"><div class="kpis"><div class="kpi"><b>${nf(st.doneKm)}</b><span>km fatti su ${nf(st.plannedKm)}</span></div><div class="kpi"><b>${st.done}/${st.total}</b><span>sedute della settimana</span></div><div class="kpi"><b>${nf(PLAN.filter(x => x.date <= t).reduce((a, x) => a + x.sessions.filter(isRun).reduce((b, s) => b + sessDoneKm(s), 0), 0), 0)}</b><span>km da inizio piano</span></div></div><div class="bar"><i style="width:${st.plannedKm ? Math.min(100, st.doneKm / st.plannedKm * 100) : 0}%"></i></div></div>`;
   if (d) {
-    html += `<h2 class="sec-h">${d.date === t ? "Oggi" : "Primo giorno"}, ${fmtDay(d.date)}</h2>${d.note ? `<p class="day-note">${esc(d.note)}</p>` : ""}${d.sessions.map(s => sessCard(s)).join("")}`;
+    html += `<h2 class="sec-h">${d.date === t ? "Oggi" : "Primo giorno"}, ${fmtDay(d.date)}</h2>${d.note ? `<p class="day-note">${esc(d.note)}</p>` : ""}${d.sessions.map(s => sessCard(s)).join("")}${dietHTML(d)}`;
     const nx = PLAN[PLAN.indexOf(d) + 1];
     if (nx) html += `<h2 class="sec-h">Domani, ${fmtDay(nx.date)}</h2>${nx.sessions.map(s => `<p class="small" style="margin:4px 0"><span style="color:var(--${s.goal in GOAL_L ? s.goal : "rest"});font-weight:600">${esc(GOAL_L[s.goal] || "")}</span> ${esc(s.title)}${s.slot ? `, <span class="muted">${esc(s.slot)}</span>` : ""}</p>`).join("")}`;
   } else {
@@ -774,6 +812,7 @@ function renderPiano() {
       <div class="kpis" style="margin-top:10px"><div class="kpi"><b>${nf(st.plannedKm)}</b><span>km di corsa previsti</span></div><div class="kpi"><b>${nf(st.doneKm)}</b><span>km fatti</span></div><div class="kpi"><b>${st.done}/${st.total}</b><span>sedute</span></div></div>
       <div class="bar"><i style="width:${st.plannedKm ? Math.min(100, st.doneKm / st.plannedKm * 100) : 0}%"></i></div>
       ${adapted ? `<div class="btn-row"><button class="btn sm danger" data-act="resetweek" data-w="${w}">Ripristina il piano originale di questa settimana</button></div>` : ""}</div>
+    ${shopHTML(w)}
     <div class="week-tools"><label class="switch"><input type="checkbox" data-act="compact" ${state.ui.compact ? "checked" : ""}> Vista compatta</label><button class="btn sm ghost" data-act="print">Stampa A4</button></div>
     <div class="${state.ui.compact ? "compact" : ""}">${days.map(dayBlock).join("")}</div>`;
   const on = $("#pills .on"); if (on) on.scrollIntoView({ inline: "center", block: "nearest" });
@@ -898,7 +937,7 @@ function buildPrint() {
     PLAN.filter(d => d.w === w).forEach(d => d.sessions.forEach((s, i) => {
       const L = state.logs[s.id] || {};
       const det = (s.steps || []).map(x => `<b>${esc(x.t)}</b>${x.d ? ": " + esc(x.d) : ""}${x.list && x.list.length ? (/^(Protocollo ginocchia|Mobilità)/.test(x.t) ? " (vedi ultima pagina)" : " (" + x.list.map(esc).join("; ") + ")") : ""}`).join(" ");
-      rows += `<tr><td>${i ? "" : `${WD[D(d.date).getDay()]} ${fmtDM(d.date)}`}</td><td><b>${esc(s.title)}</b><br>${esc(s.place || "")}</td><td>${esc(s.slot || "")}</td><td>${s.durMin || ""}${isRun(s) && s.km ? `<br>${nf(s.km)} km` : ""}</td><td>${esc(s.pace || "")}${s.speed ? "<br>" + esc(s.speed) : ""}</td><td>${esc(s.hr || "")}</td><td>${s.rpe ? s.rpe.join("–") : ""}</td><td style="width:34%">${det}${s.fuel ? `<br><i>${esc(s.fuel)}</i>` : ""}</td><td>${s.kind === "rest" ? "" : L.done ? "✓" : "☐"}</td><td>${L.km ?? ""}${L.hr ? `<br>FC ${L.hr}` : ""}</td><td>${L.rpe ?? ""}</td></tr>`;
+      rows += `<tr><td>${i ? "" : `${WD[D(d.date).getDay()]} ${fmtDM(d.date)}${(() => { const r = dietFor(d, PLAN[PLAN.indexOf(d) + 1]); return r.special ? "" : `<br><small>${esc(r.name)}: C ${r.target.C} · P ${r.target.P} · G ${r.target.F}</small>`; })()}`}</td><td><b>${esc(s.title)}</b><br>${esc(s.place || "")}</td><td>${esc(s.slot || "")}</td><td>${s.durMin || ""}${isRun(s) && s.km ? `<br>${nf(s.km)} km` : ""}</td><td>${esc(s.pace || "")}${s.speed ? "<br>" + esc(s.speed) : ""}</td><td>${esc(s.hr || "")}</td><td>${s.rpe ? s.rpe.join("–") : ""}</td><td style="width:34%">${det}${s.shoe ? `<br><b>Scarpe:</b> ${esc(s.shoe)}` : ""}${s.fuel ? `<br><i>${esc(s.fuel)}</i>` : ""}</td><td>${s.kind === "rest" ? "" : L.done ? "✓" : "☐"}</td><td>${L.km ?? ""}${L.hr ? `<br>FC ${L.hr}` : ""}</td><td>${L.rpe ?? ""}</td></tr>`;
     }));
   }
   $("#print").innerHTML = `<h1>${esc(PLAN_INFO.raceName)}: scheda di allenamento 26/10/2026 – 10/01/2027</h1>
@@ -935,6 +974,7 @@ document.addEventListener("click", async e => {
     case "upload": $("#fileIn").click(); break;
     case "week": state.ui.week = w; save(); renderPiano(); window.scrollTo(0, 0); break;
     case "swap": state.swaps[w] = !state.swaps[w]; save(); renderAll(); toast(state.swaps[w] ? "Lungo spostato a sabato." : "Lungo di nuovo a domenica."); break;
+    case "padel": state.padel[w] = state.padel[w] === "dom" ? "gio" : "dom"; save(); renderAll(); toast(state.padel[w] === "dom" ? "Padel domenica mattina, lungo sabato." : "Padel giovedì sera, lungo domenica."); break;
     case "resetweek": if (confirm(`Ripristinare il piano originale della settimana ${w}? Le modifiche (regole o Claude) di quella settimana vanno perse; le registrazioni restano.`)) { resetWeek(w); save(); renderAll(); toast(`Settimana ${w} ripristinata.`); } break;
     case "print": buildPrint(); setTimeout(() => window.print(), 50); break;
     case "delact": { const a = state.acts.find(x => x.id === el.dataset.id); if (a && confirm(`Eliminare «${a.name}» del ${fmtDay(a.date)}?`)) { unlink(a); state.acts = state.acts.filter(x => x !== a); save(); renderAll(); toast("Attività eliminata."); } break; }
